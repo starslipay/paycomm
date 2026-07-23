@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package xerror;
+// 相对路径;包名
+option go_package = "./;xerror";
+
+// 统一业务错误载体
+message BizError {
+  int64 code = 1;       // 自定义业务错误码
+  string message = 2;    // 对外展示信息
+}
