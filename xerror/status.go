@@ -55,7 +55,7 @@ func HandleRPCError(err error, serviceName string) error {
 
 	st, ok := status.FromError(err)
 	if !ok {
-		return fmt.Errorf("%s 服务调用错误: %w", serviceName, err)
+		return NewBizError(codes.Internal, 1000, fmt.Sprintf("%v 服务调用失败: %v", serviceName, st.Message()))
 	}
 
 	switch st.Code() {
@@ -63,14 +63,14 @@ func HandleRPCError(err error, serviceName string) error {
 		if bizErr, ok := ParseBizError(err); ok {
 			return NewBizError(codes.Internal, bizErr.Code, bizErr.Message)
 		}
-		return NewBizError(codes.Internal, 1000, fmt.Sprintf("%s 服务内部错误", serviceName))
+		return NewBizError(codes.Internal, 1001, fmt.Sprintf("%v 服务内部错误", serviceName))
 	case codes.Unavailable:
-		return NewBizError(codes.Internal, 1001, fmt.Sprintf("%s 服务不可达", serviceName))
+		return NewBizError(codes.Internal, 1002, fmt.Sprintf("%v 服务不可达", serviceName))
 	case codes.DeadlineExceeded:
-		return NewBizError(codes.Internal, 1002, fmt.Sprintf("%s 调用超时", serviceName))
+		return NewBizError(codes.Internal, 1003, fmt.Sprintf("%v 调用超时", serviceName))
 	case codes.Canceled:
-		return NewBizError(codes.Internal, 1003, fmt.Sprintf("%s 上下文已取消", serviceName))
+		return NewBizError(codes.Internal, 1004, fmt.Sprintf("%v 上下文已取消", serviceName))
 	default:
-		return NewBizError(codes.Internal, 1004, fmt.Sprintf("%s 服务调用失败: %s", serviceName, st.Message()))
+		return NewBizError(codes.Internal, 1005, fmt.Sprintf("%v 服务调用失败: %v", serviceName, st.Message()))
 	}
 }
