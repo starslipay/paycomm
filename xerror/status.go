@@ -1,6 +1,8 @@
 package xerror
 
 import (
+	"fmt"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -40,4 +42,35 @@ func ParseBizError(err error) (*BizError, bool) {
 		}
 	}
 	return nil, false
+}
+
+// HandleRPCError 处理RPC错误码
+// err: rpc调用返回的错误
+// serviceName: 服务名，用于非业务错误场景的错误信息
+// 返回处理后的error，包含业务错误码或服务调用错误信息
+func HandleRPCError(err error, serviceName string) error {
+	if err == nil {
+		return nil
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		return fmt.Errorf("%s 服务调用错误: %w", serviceName, err)
+	}
+
+	switch st.Code() {
+	case codes.Internal:
+		if bizErr, ok := ParseBizError(err); ok {
+			return NewBizError(codes.Internal, bizErr.Code, bizErr.Message)
+		}
+		return NewBizError(codes.Internal, 1000, fmt.Sprintf("%s 服务内部错误", serviceName))
+	case codes.Unavailable:
+		return NewBizError(codes.Internal, 1001, fmt.Sprintf("%s 服务不可达", serviceName))
+	case codes.DeadlineExceeded:
+		return NewBizError(codes.Internal, 1002, fmt.Sprintf("%s 调用超时", serviceName))
+	case codes.Canceled:
+		return NewBizError(codes.Internal, 1003, fmt.Sprintf("%s 上下文已取消", serviceName))
+	default:
+		return NewBizError(codes.Internal, 1004, fmt.Sprintf("%s 服务调用失败: %s", serviceName, st.Message()))
+	}
 }
